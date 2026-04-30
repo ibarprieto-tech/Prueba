@@ -1,62 +1,59 @@
 import streamlit as st
-import pandas as pd
-from textblob import TextBlob
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import plotly.express as px
 
-# Configuración de la página
-st.set_page_config(page_title="Análisis de Sentimiento RS", layout="wide")
+# Configuración inicial de la base de conocimientos (Árbol binario)
+# Cada nodo tiene una 'pregunta'. Si es un 'personaje', es un nodo hoja.
+def iniciar_arbol():
+    return {
+        "pregunta": "¿Tu personaje es real?",
+        "si": {
+            "pregunta": "¿Es un deportista?",
+            "si": {"personaje": "Lionel Messi"},
+            "no": {"personaje": "Albert Einstein"}
+        },
+        "no": {
+            "pregunta": "¿Tiene superpoderes?",
+            "si": {"personaje": "Spider-Man"},
+            "no": {"personaje": "Sherlock Holmes"}
+        }
+    }
 
-st.title("📊 Análisis de Sentimiento en Redes Sociales")
-st.markdown("Esta herramienta analiza el tono emocional de los mensajes utilizando NLP.")
+st.title("🧙‍♂️ El Adivino de Personajes")
+st.write("Piensa en un personaje y responderé con honestidad.")
 
-# Sidebar para opciones
-st.sidebar.header("Configuración")
-metodo = st.sidebar.selectbox("Selecciona la librería de análisis:", ["VADER", "TextBlob"])
+# Inicializar el estado del juego
+if 'nodo_actual' not in st.session_state:
+    st.session_state.arbol = iniciar_arbol()
+    st.session_state.nodo_actual = st.session_state.arbol
+    st.session_state.juego_terminado = False
 
-# Entrada de datos
-st.subheader("📝 Ingreso de Datos")
-user_input = st.text_area("Escribe un post o comentario aquí:", "¡Me encanta esta nueva tecnología!")
+def reiniciar_juego():
+    st.session_state.nodo_actual = st.session_state.arbol
+    st.session_state.juego_terminado = False
 
-def analizar_sentimiento(texto, herramienta):
-    if herramienta == "VADER":
-        analyzer = SentimentIntensityAnalyzer()
-        vs = analyzer.polarity_scores(texto)
-        score = vs['compound']
-    else:
-        score = TextBlob(texto).sentiment.polarity
+# Lógica del juego
+if not st.session_state.juego_terminado:
+    nodo = st.session_state.nodo_actual
     
-    if score > 0.05: return "Positivo", score
-    elif score < -0.05: return "Negativo", score
-    else: return "Neutro", score
-
-if st.button("Analizar Texto"):
-    sentimiento, puntaje = analizar_sentimiento(user_input, metodo)
-    
-    col1, col2 = st.columns(2)
-    col1.metric("Sentimiento", sentimiento)
-    col2.metric("Puntaje (Score)", f"{puntaje:.2f}")
-    
-    if sentimiento == "Positivo": st.success("El mensaje es optimista.")
-    elif sentimiento == "Negativo": st.error("El mensaje es crítico o negativo.")
-    else: st.warning("El mensaje es imparcial.")
-
-# Separador visual correcto
-st.markdown("---")
-
-# Sección para carga de archivos masivos
-st.subheader("📂 Análisis por Lote (CSV)")
-uploaded_file = st.file_uploader("Sube un archivo CSV con una columna llamada 'texto'", type=["csv"])
-
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    if 'texto' in df.columns:
-        df['Resultado'] = df['texto'].apply(lambda x: analizar_sentimiento(str(x), metodo)[0])
+    if "pregunta" in nodo:
+        st.subheader(nodo["pregunta"])
+        col1, col2 = st.columns(2)
         
-        st.write(df.head())
+        with col1:
+            if st.button("Sí", use_container_width=True):
+                st.session_state.nodo_actual = nodo["si"]
+                st.rerun()
         
-        # Gráfico de distribución
-        fig = px.pie(df, names='Resultado', title='Distribución de Sentimientos', hole=0.4)
-        st.plotly_chart(fig)
+        with col2:
+            if st.button("No", use_container_width=True):
+                st.session_state.nodo_actual = nodo["no"]
+                st.rerun()
     else:
-        st.error("El CSV debe tener una columna 'texto'.")
+        # Hemos llegado a un personaje
+        st.success(f"¡Tu personaje es: **{nodo['personaje']}**!")
+        st.session_state.juego_terminado = True
+        st.balloons()
+
+if st.session_state.juego_terminado:
+    if st.button("Jugar de nuevo"):
+        reiniciar_juego()
+        st.rerun()
