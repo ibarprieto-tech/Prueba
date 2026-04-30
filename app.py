@@ -1,72 +1,122 @@
 import streamlit as st
-import streamlit as st
 import random
 
+# Configuración de la página
 st.set_page_config(page_title="Trivia Rock Peruano", page_icon="🎸")
 
-st.title("🎸 Trivia: Rock Peruano")
-st.write("Responde correctamente las 5 preguntas sobre cantantes de bandas peruanas.")
-
-# Preguntas (pregunta, opciones, respuesta correcta)
-preguntas = [
-    {
-        "pregunta": "¿Quién fue el vocalista principal de Soda Stereo en sus inicios en Perú?",
-        "opciones": ["Pedro Suárez-Vértiz", "Gustavo Cerati", "Miki González", "Daniel F"],
-        "respuesta": "Gustavo Cerati"
-    },
-    {
-        "pregunta": "¿Quién es el vocalista de la banda peruana Libido?",
-        "opciones": ["Salim Vera", "Julio Andrade", "Pelo Madueño", "Wicho García"],
-        "respuesta": "Salim Vera"
-    },
-    {
-        "pregunta": "¿Quién fue el cantante principal de Arena Hash?",
-        "opciones": ["Pedro Suárez-Vértiz", "Gian Marco", "Christian Meier", "Raúl Romero"],
-        "respuesta": "Pedro Suárez-Vértiz"
-    },
-    {
-        "pregunta": "¿Quién es el vocalista de Mar de Copas?",
-        "opciones": ["Wicho García", "Salim Vera", "Pedro Suárez-Vértiz", "Jean Pierre Magnet"],
-        "respuesta": "Wicho García"
-    },
-    {
-        "pregunta": "¿Quién es el líder y vocalista de Leusemia?",
-        "opciones": ["Daniel F", "Miki González", "Pelo Madueño", "Raúl Romero"],
-        "respuesta": "Daniel F"
+# Título y estética
+st.markdown("""
+    <style>
+    .main {
+        background-color: #121212;
+        color: #ffffff;
     }
-]
+    .stButton>button {
+        width: 100%;
+        border-radius: 5px;
+        height: 3em;
+        background-color: #f04b4c;
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Mezclar preguntas
-random.shuffle(preguntas)
+st.title("🎸 Trivia: Vocalistas del Rock Peruano")
+st.write("¿Qué tanto sabes sobre las voces que marcaron la historia del rock nacional?")
 
-if "respuestas_usuario" not in st.session_state:
-    st.session_state.respuestas_usuario = {}
+# Definición de las preguntas
+if 'questions' not in st.session_state:
+    st.session_state.questions = [
+        {
+            "id": 1,
+            "pregunta": "¿Quién es el vocalista principal de la banda 'Mar de Copas'?",
+            "opciones": ["Wicho García", "Salim Vera", "Daniel F", "Jhovan Tomasevich"],
+            "correcta": "Wicho García"
+        },
+        {
+            "id": 2,
+            "pregunta": "¿Qué cantante lideró la banda 'Arena Hash' junto a su hermano Patricio?",
+            "opciones": ["Pedro Suárez-Vértiz", "Christian Meier", "Miki González", "Pelo Madueño"],
+            "correcta": "Pedro Suárez-Vértiz"
+        },
+        {
+            "id": 3,
+            "pregunta": "Es el líder y voz emblemática de la banda punk 'Leusemia':",
+            "opciones": ["Daniel F", "Raúl Montañez", "Cachorro Vial", "Kimba Vilis"],
+            "correcta": "Daniel F"
+        },
+        {
+            "id": 4,
+            "pregunta": "¿Quién es el vocalista y guitarrista de la banda 'Amén'?",
+            "opciones": ["Marcello Motta", "Salim Vera", "Lucho Quequezana", "Andrés Dulude"],
+            "correcta": "Marcello Motta"
+        },
+        {
+            "id": 5,
+            "pregunta": "¿Quién fue la voz principal de 'Libido' durante su etapa de mayor éxito internacional?",
+            "opciones": ["Salim Vera", "Toño Jáuregui", "Jeffry Fischman", "Manolo Hidalgo"],
+            "correcta": "Salim Vera"
+        }
+    ]
+    # Aleatorizar el orden de las opciones para cada pregunta al inicio
+    for q in st.session_state.questions:
+        random.shuffle(q["opciones"])
 
-# Mostrar preguntas
-for i, q in enumerate(preguntas):
-    opciones = q["opciones"].copy()
-    random.shuffle(opciones)
+# Inicialización del estado
+if 'current_step' not in st.session_state:
+    st.session_state.current_step = 0
+if 'score' not in st.session_state:
+    st.session_state.score = 0
+if 'finished' not in st.session_state:
+    st.session_state.finished = False
 
-    respuesta = st.radio(
-        f"{i+1}. {q['pregunta']}",
-        opciones,
-        key=f"pregunta_{i}"
-    )
-    st.session_state.respuestas_usuario[i] = respuesta
+def restart_game():
+    st.session_state.current_step = 0
+    st.session_state.score = 0
+    st.session_state.finished = False
+    # Re-shuffling para un nuevo intento
+    for q in st.session_state.questions:
+        random.shuffle(q["opciones"])
 
-# Botón para evaluar
-if st.button("Ver resultado"):
-    puntaje = 0
+# Lógica del Juego
+if not st.session_state.finished:
+    step = st.session_state.current_step
+    q_data = st.session_state.questions[step]
 
-    for i, q in enumerate(preguntas):
-        if st.session_state.respuestas_usuario[i] == q["respuesta"]:
-            puntaje += 1
+    st.subheader(f"Pregunta {step + 1} de 5")
+    st.info(q_data["pregunta"])
 
-    st.subheader(f"Tu puntaje: {puntaje}/5")
+    # Mostrar opciones como botones
+    for opcion in q_data["opciones"]:
+        if st.button(opcion, key=f"btn_{step}_{opcion}"):
+            if opcion == q_data["correcta"]:
+                st.session_state.score += 1
+            
+            if step + 1 < len(st.session_state.questions):
+                st.session_state.current_step += 1
+                st.rerun()
+            else:
+                st.session_state.finished = True
+                st.rerun()
 
-    if puntaje == 5:
-        st.success("¡Perfecto! 🎉 Sabes mucho de rock peruano 🤘")
-        st.balloons()  # Animación 🎈
+else:
+    # Pantalla de resultados
+    st.success("¡Has completado la trivia!")
+    final_score = st.session_state.score
+    st.metric("Tu Puntaje", f"{final_score}/5")
+
+    if final_score == 5:
+        st.balloons()
+        st.markdown("### 🏆 ¡Eres un verdadero conocedor del Rock Peruano! 🏆")
+        st.write("Has acertado todas las preguntas. ¡Salud por eso!")
+    elif final_score >= 3:
+        st.write("¡Nada mal! Conoces bien la escena local.")
     else:
-        st.warning("Sigue intentando 😄")
-st.write("Hola mundo")
+        st.write("Te falta escuchar un poco más de 'Disco Eterno' o 'Libido'. ¡Inténtalo de nuevo!")
+
+    if st.button("Reintentar Trivia"):
+        restart_game()
+        st.rerun()
+
+st.sidebar.markdown("---")
+st.sidebar.write("Hecho con ❤️ para los fans del Rock Peruano")
