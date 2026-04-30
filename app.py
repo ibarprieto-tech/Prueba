@@ -41,7 +41,9 @@ if st.button("Analizar Texto"):
     elif sentimiento == "Negativo": st.error("El mensaje es crítico o negativo.")
     else: st.warning("El mensaje es imparcial.")
 
----
+# Separador visual correcto
+st.markdown("---")
+
 # Sección para carga de archivos masivos
 st.subheader("📂 Análisis por Lote (CSV)")
 uploaded_file = st.file_uploader("Sube un archivo CSV con una columna llamada 'texto'", type=["csv"])
