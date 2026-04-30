@@ -1,122 +1,89 @@
 import streamlit as st
 import random
+import time
 
-# Configuración de la página
-st.set_page_config(page_title="Trivia Rock Peruano", page_icon="🎸")
+st.set_page_config(page_title="Ecuaciones de 1er grado", page_icon="➗")
 
-# Título y estética
+# --------- ESTILOS Y EFECTOS ---------
+def snow_effect():
+    snowflakes = "❄️" * 50
+    placeholder = st.empty()
+    for _ in range(10):
+        placeholder.markdown(
+            f"<h1 style='text-align:center; font-size:40px;'>{snowflakes}</h1>",
+            unsafe_allow_html=True
+        )
+        time.sleep(0.1)
+        snowflakes = " " + snowflakes[:-2]
+    st.success("¡Correcto! 🎉")
+
 st.markdown("""
     <style>
-    .main {
-        background-color: #121212;
-        color: #ffffff;
+    .big-title {
+        font-size:40px !important;
+        text-align:center;
+        font-weight:bold;
+        color:#4CAF50;
     }
-    .stButton>button {
-        width: 100%;
-        border-radius: 5px;
-        height: 3em;
-        background-color: #f04b4c;
-        color: white;
+    .equation {
+        font-size:28px;
+        text-align:center;
+        margin:20px 0;
+        color:#FFFFFF;
+        background-color:#222;
+        padding:15px;
+        border-radius:10px;
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-st.title("🎸 Trivia: Vocalistas del Rock Peruano")
-st.write("¿Qué tanto sabes sobre las voces que marcaron la historia del rock nacional?")
+st.markdown("<div class='big-title'>➗ Practica ecuaciones de primer grado</div>", unsafe_allow_html=True)
 
-# Definición de las preguntas
-if 'questions' not in st.session_state:
-    st.session_state.questions = [
-        {
-            "id": 1,
-            "pregunta": "¿Quién es el vocalista principal de la banda 'Mar de Copas'?",
-            "opciones": ["Wicho García", "Salim Vera", "Daniel F", "Jhovan Tomasevich"],
-            "correcta": "Wicho García"
-        },
-        {
-            "id": 2,
-            "pregunta": "¿Qué cantante lideró la banda 'Arena Hash' junto a su hermano Patricio?",
-            "opciones": ["Pedro Suárez-Vértiz", "Christian Meier", "Miki González", "Pelo Madueño"],
-            "correcta": "Pedro Suárez-Vértiz"
-        },
-        {
-            "id": 3,
-            "pregunta": "Es el líder y voz emblemática de la banda punk 'Leusemia':",
-            "opciones": ["Daniel F", "Raúl Montañez", "Cachorro Vial", "Kimba Vilis"],
-            "correcta": "Daniel F"
-        },
-        {
-            "id": 4,
-            "pregunta": "¿Quién es el vocalista y guitarrista de la banda 'Amén'?",
-            "opciones": ["Marcello Motta", "Salim Vera", "Lucho Quequezana", "Andrés Dulude"],
-            "correcta": "Marcello Motta"
-        },
-        {
-            "id": 5,
-            "pregunta": "¿Quién fue la voz principal de 'Libido' durante su etapa de mayor éxito internacional?",
-            "opciones": ["Salim Vera", "Toño Jáuregui", "Jeffry Fischman", "Manolo Hidalgo"],
-            "correcta": "Salim Vera"
-        }
-    ]
-    # Aleatorizar el orden de las opciones para cada pregunta al inicio
-    for q in st.session_state.questions:
-        random.shuffle(q["opciones"])
+# --------- GENERADOR DE ECUACIONES ---------
+def generar_ecuacion():
+    x = random.randint(0, 10)
 
-# Inicialización del estado
-if 'current_step' not in st.session_state:
-    st.session_state.current_step = 0
-if 'score' not in st.session_state:
-    st.session_state.score = 0
-if 'finished' not in st.session_state:
-    st.session_state.finished = False
+    a = random.randint(1, 5)
+    b = random.randint(-10, 10)
 
-def restart_game():
-    st.session_state.current_step = 0
-    st.session_state.score = 0
-    st.session_state.finished = False
-    # Re-shuffling para un nuevo intento
-    for q in st.session_state.questions:
-        random.shuffle(q["opciones"])
+    c = a * x + b
 
-# Lógica del Juego
-if not st.session_state.finished:
-    step = st.session_state.current_step
-    q_data = st.session_state.questions[step]
+    return {
+        "a": a,
+        "b": b,
+        "c": c,
+        "sol": x
+    }
 
-    st.subheader(f"Pregunta {step + 1} de 5")
-    st.info(q_data["pregunta"])
+# --------- ESTADO ---------
+if "ejercicio" not in st.session_state:
+    st.session_state.ejercicio = generar_ecuacion()
+    st.session_state.resultado = None
 
-    # Mostrar opciones como botones
-    for opcion in q_data["opciones"]:
-        if st.button(opcion, key=f"btn_{step}_{opcion}"):
-            if opcion == q_data["correcta"]:
-                st.session_state.score += 1
-            
-            if step + 1 < len(st.session_state.questions):
-                st.session_state.current_step += 1
-                st.rerun()
-            else:
-                st.session_state.finished = True
-                st.rerun()
+ej = st.session_state.ejercicio
 
-else:
-    # Pantalla de resultados
-    st.success("¡Has completado la trivia!")
-    final_score = st.session_state.score
-    st.metric("Tu Puntaje", f"{final_score}/5")
+# --------- MOSTRAR ECUACIÓN ---------
+ecuacion_texto = f"{ej['a']}x + ({ej['b']}) = {ej['c']}"
+st.markdown(f"<div class='equation'>{ecuacion_texto}</div>", unsafe_allow_html=True)
 
-    if final_score == 5:
-        st.balloons()
-        st.markdown("### 🏆 ¡Eres un verdadero conocedor del Rock Peruano! 🏆")
-        st.write("Has acertado todas las preguntas. ¡Salud por eso!")
-    elif final_score >= 3:
-        st.write("¡Nada mal! Conoces bien la escena local.")
-    else:
-        st.write("Te falta escuchar un poco más de 'Disco Eterno' o 'Libido'. ¡Inténtalo de nuevo!")
+# --------- INPUT USUARIO ---------
+respuesta = st.number_input("¿Cuál es el valor de x?", min_value=0, max_value=10, step=1)
 
-    if st.button("Reintentar Trivia"):
-        restart_game()
+# --------- BOTONES ---------
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("✅ Verificar"):
+        if respuesta == ej["sol"]:
+            snow_effect()
+        else:
+            st.error(f"❌ Incorrecto. Intenta de nuevo")
+
+with col2:
+    if st.button("🔄 Nuevo ejercicio"):
+        st.session_state.ejercicio = generar_ecuacion()
         st.rerun()
 
-st.sidebar.markdown("---")
-st.sidebar.write("Hecho con ❤️ para los fans del Rock Peruano")
+# --------- PISTA OPCIONAL ---------
+with st.expander("💡 Ver pista"):
+    st.write("Despeja x pasando términos al otro lado de la ecuación.")
