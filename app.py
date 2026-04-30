@@ -1,89 +1,60 @@
 import streamlit as st
-import random
-import time
+import pandas as pd
+from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import plotly.express as px
 
-st.set_page_config(page_title="Ecuaciones de 1er grado", page_icon="➗")
+# Configuración de la página
+st.set_page_config(page_title="Análisis de Sentimiento RS", layout="wide")
 
-# --------- ESTILOS Y EFECTOS ---------
-def snow_effect():
-    snowflakes = "❄️" * 50
-    placeholder = st.empty()
-    for _ in range(10):
-        placeholder.markdown(
-            f"<h1 style='text-align:center; font-size:40px;'>{snowflakes}</h1>",
-            unsafe_allow_html=True
-        )
-        time.sleep(0.1)
-        snowflakes = " " + snowflakes[:-2]
-    st.success("¡Correcto! 🎉")
+st.title("📊 Análisis de Sentimiento en Redes Sociales")
+st.markdown("Esta herramienta analiza el tono emocional de los mensajes utilizando NLP.")
 
-st.markdown("""
-    <style>
-    .big-title {
-        font-size:40px !important;
-        text-align:center;
-        font-weight:bold;
-        color:#4CAF50;
-    }
-    .equation {
-        font-size:28px;
-        text-align:center;
-        margin:20px 0;
-        color:#FFFFFF;
-        background-color:#222;
-        padding:15px;
-        border-radius:10px;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Sidebar para opciones
+st.sidebar.header("Configuración")
+metodo = st.sidebar.selectbox("Selecciona la librería de análisis:", ["VADER", "TextBlob"])
 
-st.markdown("<div class='big-title'>➗ Practica ecuaciones de primer grado</div>", unsafe_allow_html=True)
+# Entrada de datos
+st.subheader("📝 Ingreso de Datos")
+user_input = st.text_area("Escribe un post o comentario aquí:", "¡Me encanta esta nueva tecnología!")
 
-# --------- GENERADOR DE ECUACIONES ---------
-def generar_ecuacion():
-    x = random.randint(0, 10)
+def analizar_sentimiento(texto, herramienta):
+    if herramienta == "VADER":
+        analyzer = SentimentIntensityAnalyzer()
+        vs = analyzer.polarity_scores(texto)
+        score = vs['compound']
+    else:
+        score = TextBlob(texto).sentiment.polarity
+    
+    if score > 0.05: return "Positivo", score
+    elif score < -0.05: return "Negativo", score
+    else: return "Neutro", score
 
-    a = random.randint(1, 5)
-    b = random.randint(-10, 10)
+if st.button("Analizar Texto"):
+    sentimiento, puntaje = analizar_sentimiento(user_input, metodo)
+    
+    col1, col2 = st.columns(2)
+    col1.metric("Sentimiento", sentimiento)
+    col2.metric("Puntaje (Score)", f"{puntaje:.2f}")
+    
+    if sentimiento == "Positivo": st.success("El mensaje es optimista.")
+    elif sentimiento == "Negativo": st.error("El mensaje es crítico o negativo.")
+    else: st.warning("El mensaje es imparcial.")
 
-    c = a * x + b
+---
+# Sección para carga de archivos masivos
+st.subheader("📂 Análisis por Lote (CSV)")
+uploaded_file = st.file_uploader("Sube un archivo CSV con una columna llamada 'texto'", type=["csv"])
 
-    return {
-        "a": a,
-        "b": b,
-        "c": c,
-        "sol": x
-    }
-
-# --------- ESTADO ---------
-if "ejercicio" not in st.session_state:
-    st.session_state.ejercicio = generar_ecuacion()
-    st.session_state.resultado = None
-
-ej = st.session_state.ejercicio
-
-# --------- MOSTRAR ECUACIÓN ---------
-ecuacion_texto = f"{ej['a']}x + ({ej['b']}) = {ej['c']}"
-st.markdown(f"<div class='equation'>{ecuacion_texto}</div>", unsafe_allow_html=True)
-
-# --------- INPUT USUARIO ---------
-respuesta = st.number_input("¿Cuál es el valor de x?", min_value=0, max_value=10, step=1)
-
-# --------- BOTONES ---------
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("✅ Verificar"):
-        if respuesta == ej["sol"]:
-            snow_effect()
-        else:
-            st.error(f"❌ Incorrecto. Intenta de nuevo")
-
-with col2:
-    if st.button("🔄 Nuevo ejercicio"):
-        st.session_state.ejercicio = generar_ecuacion()
-        st.rerun()
-
-# --------- PISTA OPCIONAL ---------
-with st.expander("💡 Ver pista"):
-    st.write("Despeja x pasando términos al otro lado de la ecuación.")
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    if 'texto' in df.columns:
+        df['Resultado'] = df['texto'].apply(lambda x: analizar_sentimiento(str(x), metodo)[0])
+        
+        st.write(df.head())
+        
+        # Gráfico de distribución
+        fig = px.pie(df, names='Resultado', title='Distribución de Sentimientos', hole=0.4)
+        st.plotly_chart(fig)
+    else:
+        st.error("El CSV debe tener una columna 'texto'.")
